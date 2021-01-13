@@ -196,7 +196,11 @@ def smooth(x, window_len, window):
 ############################################################
 
 def lecture_data(filename):
-    """Reads data from input into an array.
+    """Reads data from filename into an array,
+    doing a 360 days averaging on the fly.
+    The input data is assumed to be daily (with 360 days per year)
+    The returned array is yearly.
+    The return array has a length of (nblines-1)/360
 
     Keyword arguments:
     filename -- path to input file.
