@@ -165,6 +165,8 @@ def smooth(x, window_len, window):
     window_len -- the dimension of the smoothing window; should be an odd integer.
     window -- the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
                 flat window will produce a moving average smoothing. See numpy documentation for explanation of these window types.
+
+    Based on original code from: http://stackoverflow.com/questions/5515720/python-smooth-time-series-data            
     """
 
     if x.ndim != 1:
@@ -196,7 +198,11 @@ def smooth(x, window_len, window):
 ############################################################
 
 def lecture_data(filename):
-    """Reads data from input into an array.
+    """Reads data from filename into an array,
+    doing a 360 days averaging on the fly.
+    The input data is assumed to be daily (with 360 days per year)
+    The returned array is yearly.
+    The return array has a length of (nblines-1)/360
 
     Keyword arguments:
     filename -- path to input file.
@@ -243,10 +249,10 @@ def plot_lecture_data(lecture_data, out_file=False):
     out_file -- optional, filepath to which to save the output graph.
     """
 
-    sizef=3
-    orange='#FF7F00'
-    yellow='#EEC900'
     sizefont=13
+    line_width=2
+    color_dots='black'
+    color_smooth_line='indianred'
 
     fig=plt.figure(1, figsize=(12,7))
 
@@ -260,14 +266,16 @@ def plot_lecture_data(lecture_data, out_file=False):
     nb_max = len(temp)
     my_window_len = 10
     time_all=np.arange(0,0+len(temp_all))
-    temp_all_smooth=smooth(temp_all, window_len=my_window_len, window='hanning')
-    temp_all_smooth=temp_all_smooth[my_window_len-1:-my_window_len+1]
+
+    # Data is being smooth with a window my_window_len, do not keep the data before and after the smoothing window
+    temp_all_smooth=smooth(temp_all, window_len=my_window_len, window='hanning')[my_window_len-1:-my_window_len+1]
     time_all_smooth=time_all[my_window_len-1:-my_window_len+1]
+
     print('size',len(temp_all_smooth),len(time_all_smooth))
 
     compteur=0
-    line2=plt.plot(time_all,temp,'.',color='black', markersize=1,label="Yearly data")
-    line2=plt.plot(time_all_smooth,temp_all_smooth,'-',color='indianred', linewidth=2,label=""+str(my_window_len)+" years running average")
+    line2=plt.plot(time_all,temp,'.',color=color_dots, markersize=1,label="Yearly data")
+    line2=plt.plot(time_all_smooth,temp_all_smooth,'-',color=color_smooth_line, linewidth=line_width,label=""+str(my_window_len)+" years running average")
 
 
     plt.ylabel('Global mean temperature (°C)',{'fontsize': sizefont})
