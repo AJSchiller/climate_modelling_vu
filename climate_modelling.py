@@ -2,11 +2,11 @@
 
 """
 Created: 9 January 2021
-Last modified: 12 January 2021
+Last modified: 14 January 2021
 
 This module contains functions that are likely to be used repeatedly in computer practicals in the course Climate Modelling at VU Amsterdam, Jan 2021.
 
-@author: AJSchiller, heavily based on code by Didier M. Roche a.k.a. dmr.
+@author: AJSchiller
 """
 
 
@@ -15,7 +15,7 @@ from numpy import ma
 import netCDF4 as nc
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
-import glob
+import pandas as pd
 
 
 ############################################################
@@ -47,6 +47,8 @@ def get_var(data, variable):
 
     Assumes the variable of interest has either 2 or 3 dimensions (2 of them being 'lat' and 'lon'). If 3 dimensions are present, the function will average the data along the 3rd dimension (i.e. not 'lat' or 'lon')
     Returns variable of interest, latitude, and longitude values stored in masked arrays.
+
+    Adapted from Didier M. Roche a.k.a. dmr.
     """
 
     var = data.variables[variable]
@@ -75,6 +77,8 @@ def plot_nearside(var_plot, lons, lats, title, legend_label, cmap='viridis', con
     central_longitude -- the longitude at which the output map will be centre (default -3.53).
     satellite_height -- the height from which the map is viewed (default 10000000.0).
     out_file -- optional filepath to save the output image (default False).
+
+    Adapted from Didier M. Roche a.k.a. dmr.
     """
 
     min_bounds = np.min(var_plot)
@@ -123,6 +127,8 @@ def map_data(var_map, lons, lats, title, legend_label, cmap='viridis', contours=
     cmap -- colormap to be used (default 'viridis', suggested alternative plt.cm.coolwarm).
     contours -- boolean, determines whether contour lines will be included in the map (default True).
     out_file -- optional filepath to save the output image (default False).
+
+    Adapted from Didier M. Roche a.k.a. dmr.
     """
     crs = ccrs.PlateCarree()
 
@@ -166,7 +172,8 @@ def smooth(x, window_len, window):
     window -- the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
                 flat window will produce a moving average smoothing. See numpy documentation for explanation of these window types.
 
-    Based on original code from: http://stackoverflow.com/questions/5515720/python-smooth-time-series-data            
+
+    Adapted from Didier M. Roche a.k.a. dmr, based on original code from: http://stackoverflow.com/questions/5515720/python-smooth-time-series-data
     """
 
     if x.ndim != 1:
@@ -197,96 +204,58 @@ def smooth(x, window_len, window):
 
 ############################################################
 
-def lecture_data(filename):
-    """Reads data from filename into an array,
-    doing a 360 days averaging on the fly.
+def read_book(filename):
+    """Reads data from filename into an pandas dataframe.
     The input data is assumed to be daily (with 360 days per year)
-    The returned array is yearly.
-    The return array has a length of (nblines-1)/360
+    Returns a numpy array of yearly averages.
 
     Keyword arguments:
     filename -- path to input file.
     """
 
-    input_f = filename
-    f = open(input_f)
-    f.seek(0)
-    nblines = f.readlines()
-    compteur_line = 0
-    compteur_line2 = 0
-    dada = 0
-    nmax = len(nblines) - 1
-    temp = np.zeros(nmax)
-    nmax2 = int(nmax/360)
-    temp2 = np.zeros(nmax2)
-    for i in range(0, len(nblines)-1):
-        line = nblines[i]
-        temp[compteur_line] = float(line.strip().split()[2])
-        compteur_line += 1
-        if dada == 0:
-            toto = float(line.strip().split()[2])
-        if dada < 359:
-            toto += float(line.strip().split()[2])
-        if dada == 359:
-            toto += float(line.strip().split()[2])
-            toto = toto/360.
-            temp2[compteur_line2] = toto
-            compteur_line2 += 1
-        dada += 1
-        if dada == 360:
-            dada = 0
-    results = [temp2]
+    df = pd.read_csv(filename, sep='\s+', header=None, names=['year', 'day', 'var'])
+
+    annual = df.groupby('year')['var'].mean()
+
+    results = annual.to_numpy()
+
     return results
 
 
 ############################################################
 
-def plot_lecture_data(lecture_data, out_file=False):
-    """Graphs a scatterplot of the output of `lecture_data` with a 10-year running average.
+def plot_timeline(data, window, xlabel, ylabel, window_length=10, legend='on', out_file=False):
+    """Graphs a scatterplot of the data (assumed to be annual) with a 10-year running average.
 
     Keyword arguments:
     lecture_data -- output of the `lecture_data` function.
-    out_file -- optional, filepath to which to save the output graph.
+    window -- string, the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
+                flat window will produce a moving average smoothing. See numpy documentation for explanation of these window types.
+    xlabel -- label for the horizontal (x) axis.
+    ylabel -- label for the vertical (y) axis.
+    window_length -- the dimension of the smoothing window (default 10).
+    legend -- includes a legend with the default labels "Yearly data" and "x-year running average" (default 'on'). To disable the legend, set to 'off'.
+    out_file -- optional, filepath to which to save the output graph (default False).
     """
 
-    sizefont=13
-    line_width=2
-    color_dots='black'
-    color_smooth_line='indianred'
+    data_smooth = smooth(data, window_len=window_length, window=window)[window_length-1: -window_length+1]
+    time = np.arange(0, len(data))
+    time_smooth = time[window_length-1: -window_length+1]
 
-    fig=plt.figure(1, figsize=(12,7))
+    fig, ax = plt.subplots()
+    ax.plot(time, data, '.', color='black', markersize=1, label="Yearly data")
+    ax.plot(time_smooth, data_smooth, '-', color='indianred', linewidth=2, label="{}-year running average".format(window_length))
 
-    plt.subplot(1, 1, 1)
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel)
 
-    results=lecture_data
-    temp=results[0]
-
-    temp_all=temp
-    var = np.mean(temp)
-    nb_max = len(temp)
-    my_window_len = 10
-    time_all=np.arange(0,0+len(temp_all))
-
-    # Data is being smooth with a window my_window_len, do not keep the data before and after the smoothing window
-    temp_all_smooth=smooth(temp_all, window_len=my_window_len, window='hanning')[my_window_len-1:-my_window_len+1]
-    time_all_smooth=time_all[my_window_len-1:-my_window_len+1]
-
-    print('size',len(temp_all_smooth),len(time_all_smooth))
-
-    compteur=0
-    line2=plt.plot(time_all,temp,'.',color=color_dots, markersize=1,label="Yearly data")
-    line2=plt.plot(time_all_smooth,temp_all_smooth,'-',color=color_smooth_line, linewidth=line_width,label=""+str(my_window_len)+" years running average")
-
-
-    plt.ylabel('Global mean temperature (°C)',{'fontsize': sizefont})
-    plt.xlabel('Time (simulation years)',{'fontsize': sizefont})
-    plt.legend(fontsize='large')
-    plt.subplots_adjust(bottom=0.1, right=0.90, top=0.92, left=0.15, hspace=0.2)
+    if legend == 'on':
+        ax.legend()
 
     if out_file:
         fig.savefig(out_file)
 
-    plt.show()
+    fig.show()
 
 
 ############################################################
