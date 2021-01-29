@@ -23,11 +23,11 @@ Otherwise, all packages are also available from PyPi. If you are unsure how to i
 
 ### Installation
 
+To install this module, you can either click the green 'Code' button on the right of the [GitHub page](https://github.com/AJSchiller/climate_modelling_vu) and then click 'Download ZIP':
+
 <p align="right">
 <img style="float: right;" src="https://docs.github.com/assets/images/help/repository/code-button.png" alt="The 'Code' button (source: GitHub)" width="250"/>
 </p>
-
-To install this module, you can either click the green 'Code' button on the right of the [GitHub page](https://github.com/AJSchiller/climate_modelling_vu) and then click 'Download ZIP':
 
 <br><br>Or run the following command from your Terminal (linux/MacOS) or Command Prompt (Windows):
 
